@@ -1,0 +1,5 @@
+build/
+*.cast
+gse/
+oci-noo
+*.json
