@@ -61,6 +61,7 @@ func OCIPushToRegistry(ss schema.ServiceSchema) error {
 	ch := make(chan byte, 1)
 	for _, file := range files {
 
+		// launch each layer push concurrently
 		go func(file string) {
 
 			// set up the request

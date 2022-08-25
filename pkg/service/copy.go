@@ -40,12 +40,13 @@ func OCICopyToDisk(ss schema.ServiceSchema) error {
 	}
 	client := &http.Client{Transport: t}
 
-	// download all the blobs/layers
+	// create the directory for all the blobs/layers
 	err = os.MkdirAll(ss.Path+blobsPath, 0777)
 	if err != nil {
 		return err
 	}
 
+	// setup the GET request
 	req, err := http.NewRequest(http.MethodGet, ss.URL+manifests+ss.Version, nil)
 	req.Header.Set("Accept", "application/vnd.oci.image.manifest.v1+json")
 	if ss.Auth {
@@ -88,6 +89,11 @@ func OCICopyToDisk(ss schema.ServiceSchema) error {
 		// for schemaVersion 2 we use OCIImageManifest
 		var ocim schema.OCIImageManifest
 		err = json.Unmarshal(data, &ocim)
+		if err == nil {
+			err = saveToOCI(client, ss, ocim)
+		}
+	default:
+		err = fmt.Errorf("version unknown")
 	}
 	return err
 }
@@ -175,6 +181,7 @@ func convertAndSaveToOCI(client *http.Client, ss schema.ServiceSchema, ms schema
 	ch := make(chan byte, 1)
 
 	for _, x := range ms.FsLayers {
+		// launch each layer fetch concurrently
 		go func(x schema.FsLayer) {
 			req, err := http.NewRequest(http.MethodGet, ss.URL+blobs+x.BlobSum, nil)
 			if ss.Auth {
